@@ -1,3 +1,25 @@
+"""
++--------------------------------------------------
+| Playblast Banner
++--------------------------------------------------
+| Author: Jason Whyttes
+| Date: 17/05/2022
++--------------------------------------------------
+| Description: Creates a banner that the 
+| animator can playblast with to show the
+| animators name, shot name, and frame number.
++--------------------------------------------------
+| Usage: 1) Input Animator name, default is user
+| login name.
+|		 2) Input shot name.
+|		 3) Select camera from drop down.
+|		 4) Click create.
+|
+| *Adjust the banner position with the 		  
+|  adjustment buttons or with mayas translate/
+|  rotate/scale tools.						  
++--------------------------------------------------
+"""
 import os
 import sys
 
@@ -5,14 +27,13 @@ from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 from shiboken2 import wrapInstance
-import maya.OpenMayaUI as omui
 
+import maya.OpenMayaUI as omui
 import maya.cmds as cmds
 
 
-
-
 def maya_main_window():
+
 	main_window_ptr = omui.MQtUtil.mainWindow()
 	return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
@@ -63,18 +84,39 @@ class PlayblastBanner(QtWidgets.QDialog):
 		self.create_banner_btn = QtWidgets.QPushButton("Create")
 		self.close_bnt = QtWidgets.QPushButton("Close")
 		self.adjust_size_le = QtWidgets.QLineEdit("1")
-		self.adjust_size_le.setFixedWidth(40)
+		self.adjust_size_le.setFixedSize(40,20)
 		self.adjust_width_le = QtWidgets.QLineEdit("1")
-		self.adjust_width_le.setFixedWidth(40)
+		self.adjust_width_le.setFixedSize(40,20)
 		self.adjust_height_le = QtWidgets.QLineEdit("1")
-		self.adjust_height_le.setFixedWidth(40)
-
+		self.adjust_height_le.setFixedSize(40,20)
 		self.select_node_btn = QtWidgets.QPushButton("Select Translator")
-
-
 		self.separator_01 = QtWidgets.QFrame()
 		self.separator_01.setFrameShadow(QtWidgets.QFrame.Sunken)
 		self.separator_01.setFrameShape(QtWidgets.QFrame.HLine)
+		self.nudge_distance_up = QtWidgets.QPushButton(QtGui.QIcon(":moveUVUp.png"), "")
+		self.nudge_distance_up.setFixedSize(13,9)
+		self.nudge_distance_down = QtWidgets.QPushButton(QtGui.QIcon(":moveUVDown.png"), "")
+		self.nudge_distance_down.setFixedSize(13,9)
+		self.nudge_width_up = QtWidgets.QPushButton(QtGui.QIcon(":moveUVUp.png"), "")
+		self.nudge_width_up.setFixedSize(13,9)
+		self.nudge_width_down = QtWidgets.QPushButton(QtGui.QIcon(":moveUVDown.png"), "")
+		self.nudge_width_down.setFixedSize(13,9)
+		self.nudge_height_up = QtWidgets.QPushButton(QtGui.QIcon(":moveUVUp.png"), "")
+		self.nudge_height_up.setFixedSize(13,9)
+		self.nudge_height_down = QtWidgets.QPushButton(QtGui.QIcon(":moveUVDown.png"), "")
+		self.nudge_height_down.setFixedSize(13,9)
+
+		#disable adjuster buttons until banner is created
+		self.adjust_size_le.setEnabled(False)
+		self.adjust_width_le.setEnabled(False)
+		self.adjust_height_le.setEnabled(False)
+		self.nudge_distance_up.setEnabled(False)
+		self.nudge_distance_down.setEnabled(False)
+		self.nudge_height_up.setEnabled(False)
+		self.nudge_height_down.setEnabled(False)
+		self.nudge_width_up.setEnabled(False)
+		self.nudge_width_down.setEnabled(False)
+		self.select_node_btn.setEnabled(False)
 
 	def create_layouts(self):
 		camera_select_layout = QtWidgets.QHBoxLayout()
@@ -88,11 +130,38 @@ class PlayblastBanner(QtWidgets.QDialog):
 		animation_details_layout.addRow("Shot Name:",self.animation_shot_le)
 		animation_details_layout.addRow("Camera:", camera_select_layout)
 
+		nudge_distance_layout = QtWidgets.QVBoxLayout()
+		nudge_distance_layout.setSpacing(1)
+		nudge_distance_layout.addWidget(self.nudge_distance_up)
+		nudge_distance_layout.addWidget(self.nudge_distance_down)
+
+		distance_layout = QtWidgets.QHBoxLayout()
+		distance_layout.addWidget(self.adjust_size_le)
+		distance_layout.addLayout(nudge_distance_layout)
+
+		nudge_width_layout = QtWidgets.QVBoxLayout()
+		nudge_width_layout.setSpacing(1)
+		nudge_width_layout.addWidget(self.nudge_width_up)
+		nudge_width_layout.addWidget(self.nudge_width_down)
+
+		width_layout = QtWidgets.QHBoxLayout()
+		width_layout.addWidget(self.adjust_width_le)
+		width_layout.addLayout(nudge_width_layout)
+
+		nudge_height_layout = QtWidgets.QVBoxLayout()
+		nudge_height_layout.setSpacing(1)
+		nudge_height_layout.addWidget(self.nudge_height_up)
+		nudge_height_layout.addWidget(self.nudge_height_down)
+
+		height_layout = QtWidgets.QHBoxLayout()
+		height_layout.addWidget(self.adjust_height_le)
+		height_layout.addLayout(nudge_height_layout)
+
 		adjust_layout_form = QtWidgets.QFormLayout()
 		adjust_layout_form.setSpacing(4)
-		adjust_layout_form.addRow("Distance:",self.adjust_size_le)
-		adjust_layout_form.addRow("Width:", self.adjust_width_le)
-		adjust_layout_form.addRow("Height:", self.adjust_height_le)
+		adjust_layout_form.addRow("Distance:",distance_layout)
+		adjust_layout_form.addRow("Width:", width_layout)
+		adjust_layout_form.addRow("Height:", height_layout)
 
 		adjust_layout = QtWidgets.QHBoxLayout()
 		adjust_layout.addLayout(adjust_layout_form)
@@ -127,6 +196,38 @@ class PlayblastBanner(QtWidgets.QDialog):
 		self.adjust_width_le.textChanged.connect(self.adjust_width)
 		self.adjust_height_le.textChanged.connect(self.adjust_height)
 		self.select_node_btn.clicked.connect(self.select_transform_node)
+		self.nudge_distance_up.clicked.connect(self.set_nudge_val)
+		self.nudge_distance_down.clicked.connect(self.set_nudge_val)
+		self.nudge_width_up.clicked.connect(self.set_nudge_val)
+		self.nudge_width_down.clicked.connect(self.set_nudge_val)
+		self.nudge_height_up.clicked.connect(self.set_nudge_val)
+		self.nudge_height_down.clicked.connect(self.set_nudge_val)
+
+	def set_nudge_val(self):
+		if self.sender() == self.nudge_distance_up:
+			cur_val = float(self.adjust_size_le.text()) + 0.01
+			self.adjust_size_le.setText(str(f'{cur_val:.2f}'))
+
+		elif self.sender() == self.nudge_distance_down:
+			cur_val = float(self.adjust_size_le.text()) - 0.01
+			self.adjust_size_le.setText(str(f'{cur_val:.2f}'))
+
+		elif self.sender() == self.nudge_width_up:
+			cur_val = float(self.adjust_width_le.text()) + 0.01
+			self.adjust_width_le.setText(str(f'{cur_val:.2f}'))
+
+		elif self.sender() == self.nudge_width_down:
+			cur_val = float(self.adjust_width_le.text()) - 0.01
+			self.adjust_width_le.setText(str(f'{cur_val:.2f}'))
+
+		elif self.sender() == self.nudge_height_up:
+			cur_val = float(self.adjust_height_le.text()) + 0.01
+			self.adjust_height_le.setText(str(f'{cur_val:.2f}'))
+
+		else:
+			cur_val = float(self.adjust_height_le.text()) - 0.01
+			self.adjust_height_le.setText(str(f'{cur_val:.2f}'))
+
 
 	def get_animator_loging(self):
 		user_name = os.getlogin()
@@ -134,17 +235,15 @@ class PlayblastBanner(QtWidgets.QDialog):
 
 	def get_scene_cameras(self):
 		self.camera_select_cb.clear()
-		scene_cameras = cmds.ls(type=('camera'), l=True)
-		default_cameras = [camera for camera in scene_cameras if cmds.camera(cmds.listRelatives(camera, parent=True)[0], startupCamera=True, q=True)]
-		user_cameras = list(set(scene_cameras) - set(default_cameras))
+		scene_cameras = cmds.listCameras()
 		for cams in scene_cameras:
-			cam = cams.split("|")[1].split("|")[0]
-			self.camera_select_cb.addItem(cam)
+			self.camera_select_cb.addItem(cams)
 
 	def select_transform_node(self):
 		cmds.select(self.anim_types[1])
-	def adjust_size(self):
+		cmds.setToolTo("Move")
 
+	def adjust_size(self):
 		try:
 			val = float(self.adjust_size_le.text())
 			cmds.setAttr("{0}.scaleX".format(self.anim_types[1]),val-.8)
@@ -163,7 +262,6 @@ class PlayblastBanner(QtWidgets.QDialog):
 			return
 
 	def adjust_width(self):
-
 		try:
 			val = float(self.adjust_width_le.text())
 			cmds.setAttr("{0}.scaleX".format(self.anim_types[2]),val)
@@ -174,7 +272,16 @@ class PlayblastBanner(QtWidgets.QDialog):
 	def execute(self):
 		self.anim_types = self.set_up_text()
 		self.attatch_to_cam(self.anim_types)
-
+		self.adjust_size_le.setEnabled(True)
+		self.adjust_width_le.setEnabled(True)
+		self.adjust_height_le.setEnabled(True)
+		self.nudge_distance_up.setEnabled(True)
+		self.nudge_distance_down.setEnabled(True)
+		self.nudge_height_up.setEnabled(True)
+		self.nudge_height_down.setEnabled(True)
+		self.nudge_width_up.setEnabled(True)
+		self.nudge_width_down.setEnabled(True)
+		self.select_node_btn.setEnabled(True)
 
 	def set_up_text(self):
 		user_name = self.animator_name_le.text()
@@ -183,7 +290,6 @@ class PlayblastBanner(QtWidgets.QDialog):
 		shot_name = self.animation_shot_le.text()
 		if not shot_name:
 			shot_name = self.animation_shot_le.placeholderText()
-
 		node_prefix = "{0}_anim_overlay".format(user_name)
 
 		geo_grp_name = self.check_exists("{0}_type_grp".format(node_prefix),0)
@@ -221,10 +327,8 @@ class PlayblastBanner(QtWidgets.QDialog):
 		cmds.setAttr('{0}.visibility'.format(anchor_loc_frames[0]),0)
 		cmds.setAttr('{0}.visibility'.format(anchor_loc_animator[0]),0)
 		cmds.setAttr('{0}.visibility'.format(anchor_loc_shot[0]),0)
-
 		cmds.setAttr("{0}.generator".format(frame_type_geo[0]),1)
 		cmds.setAttr("{0}.length".format(frame_type_geo[0]),4)
-
 		cmds.setAttr('{0}.textInput'.format(animator_type_geo[0]),self.string_to_hex(user_name),type='string')
 		cmds.setAttr('{0}.textInput'.format(shot_type_geo[0]),self.string_to_hex(shot_name),type='string')
 
@@ -330,14 +434,15 @@ class PlayblastBanner(QtWidgets.QDialog):
 		cmds.xform(anim_banner[1],scale=(0.2,0.2,0.2))
 		cmds.parentConstraint(cam,anim_banner[0],mo=1)
 
-	def find_cams(self):
-		scene_cameras = cmds.ls(type=('camera'), l=True)
-		default_cameras = [camera for camera in scene_cameras if cmds.camera(cmds.listRelatives(camera, parent=True)[0], startupCamera=True, q=True)]
-		user_cameras = list(set(scene_cameras) - set(default_cameras))
-		cam_list = []
-		for cams in scene_cameras:
-		    cam_list.append(cams.split("|")[1].split("|")[0])
-		return(cam_list)
+		cmds.setAttr('{0}.tx'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.ty'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.tz'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.rx'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.ry'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.rz'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.sx'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.sy'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
+		cmds.setAttr('{0}.sz'.format(anim_banner[0]),lock=True, keyable=False,channelBox=False)
 
 if __name__ == "__main__":
 	try:
