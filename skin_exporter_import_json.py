@@ -25,17 +25,20 @@ import maya.cmds as cmds
 
 
 class UserData():
+    """
+    handles the user data
+    """
     def __init__(self, userName=None, userTime=None, platform=None):
         self.userName = userName
         self.userTime = userTime
         self.platform = platform
-
-
+    # get the username, the time the file was created and the platform
     def get_user_data(self, user_name):
         self.userName = user_name
         self.userTime = '{0} - {1}'.format(cmds.about(currentDate=True),cmds.about(currentTime=True))
         self.platform = cmds.about(installedVersion=True)
-
+        
+    # set the user data json formatting
     def to_json(self):
         return {
             "user": self.userName,
@@ -44,18 +47,25 @@ class UserData():
         }
 
 class DeformerData():
+    """
+    get all the deformer data. skincluster, mesh, verts, and influences
+    """
     def __init__(self, scName=None, meshName=None, meshVerts=None, influenceWeights=None):
         self.scName = scName
         self.meshName = meshName
         self.meshVerts = meshVerts
         self.influenceWeights = influenceWeights
 
+
+    # get the bind data
     def get_mesh_data(self, mesh_deformer):
         inf_data = []
-        
+        # get the mesh name and the skin clusters influences
         sc_deformer = mesh_deformer
         mesh = cmds.skinCluster(sc_deformer, q=1, g=1)[0]
         influences = cmds.skinCluster(sc_deformer, query=True, influence=True)
+        
+        # get the influence values per vert on the mesh
         for i in range(0, len(influences)):
             inf_weight_data = []
             inf_info = {}
@@ -71,8 +81,7 @@ class DeformerData():
         self.meshVerts = [v for v in range(cmds.polyEvaluate(mesh, v=True))]
         self.influenceWeights = inf_data
 
-        
-
+    # set the deformer data json formatting
     def to_json(self):
         return {
             "cluster": self.scName,
@@ -82,7 +91,9 @@ class DeformerData():
         }
 
 class SCImportExport(QtWidgets.QDialog):
-
+    """
+    Create a gui for the exporter
+    """
     TITLE = "Skin Cluster Exporter/Importer"
     json_data = None
     dlg_instance = None
@@ -91,7 +102,6 @@ class SCImportExport(QtWidgets.QDialog):
     def show_dialog(cls):
         if not cls.dlg_instance:
             cls.dlg_instance = SCImportExport()
-        
         if cls.dlg_instance.isHidden():
             cls.dlg_instance.show()
         else:
@@ -99,12 +109,12 @@ class SCImportExport(QtWidgets.QDialog):
             cls.dlg_instance.activateWindow()
 
     def __init__(self):
-
+        # check which version of python is being used by maya
         if sys.version_info.major < 3:
             maya_main_window = wrapInstance(long(omui.MQtUtil.mainWindow()), QtWidgets.QWidget)
         else:
             maya_main_window = wrapInstance(int(omui.MQtUtil.mainWindow()), QtWidgets.QWidget)
-
+        # parent our gui to mayas main window
         super(SCImportExport, self).__init__(maya_main_window)
 
         self.setWindowTitle(SCImportExport.TITLE)
@@ -162,9 +172,8 @@ class SCImportExport(QtWidgets.QDialog):
         self.sc_platform_le.setReadOnly(True)
 
         self.import_sc_btn = QtWidgets.QPushButton("Import")
-
         self.close_btn = QtWidgets.QPushButton("Close")
-
+        
         self.import_sc_h_line_01 = QtWidgets.QFrame()
         self.import_sc_h_line_01.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.import_sc_h_line_01.setFrameShape(QtWidgets.QFrame.HLine)
@@ -259,15 +268,17 @@ class SCImportExport(QtWidgets.QDialog):
         self.import_sc_btn.clicked.connect(self.sc_do_import)
         self.close_btn.clicked.connect(self.close)
     
+    # get the current projects directory to be the path the gui will open to initially
     def get_project_dir_path(self):
         return cmds.workspace(q=True, rootDirectory=True)
-
+    
     def resolve_output_directory_path(self, dir_path):
         if "{project}/" in dir_path:
             dir_path = dir_path.replace("{project}/", self.get_project_dir_path())
 
         return dir_path
-
+    
+    # let the user select a export directory
     def select_export_dir(self):
         current_dir_path = self.export_dir_path_le.text()
         if not current_dir_path:
@@ -281,6 +292,7 @@ class SCImportExport(QtWidgets.QDialog):
         if new_dir_path:
             self.export_dir_path_le.setText(new_dir_path)
 
+    # let the user select a file to import
     def select_import_dir(self):
         current_dir_path = self.export_dir_path_le.text()
         if not current_dir_path:
@@ -295,33 +307,36 @@ class SCImportExport(QtWidgets.QDialog):
             self.import_dir_path_le.setText(new_dir_path[0])
             self.populate_data(new_dir_path[0])
 
+    # query the user to overwrite the file
     def export_overwrite(self):
         overwrite = QtWidgets.QMessageBox.question(self, "Overwrite File?", "File Exists, Overwrite?")
         if overwrite == QtWidgets.QMessageBox.Yes:
             return True
         else:
             return False
-
+        
+    # get all skincluster deformers in the scene
     def get_scene_deformers(self):
         scene_sc = cmds.ls(type='skinCluster')
         if scene_sc:
             return scene_sc
-
         else:
-
             return False
 
+    # get the users name using the os login credentials
     def get_user_data(self):
         self.userName = os.getlogin()
         return self.userName
 
+    # set the skincluster line edit to reflect the combo box when changed
     def export_cb_changed(self):
         export_found_deformer = self.export_sc_node_cb.currentText()
 
         sc_export_name = self.sc_export_name_le.text()
         if not sc_export_name:
             self.sc_export_name_le.setPlaceholderText(export_found_deformer)
-
+    
+    # populate the gui with some data gathered from the users detail and scene skinclusters
     def set_initial_values(self):
         s_clusters = self.get_scene_deformers()
         user_details = self.get_user_data()
@@ -336,6 +351,7 @@ class SCImportExport(QtWidgets.QDialog):
             pass
         self.sc_export_creator_le.setPlaceholderText(user_details)
 
+    # refresh the export combobox
     def refresh_export_cb(self):
         s_clusters = self.get_scene_deformers()
         cur_export_cb = self.export_sc_node_cb.currentText()
@@ -350,7 +366,7 @@ class SCImportExport(QtWidgets.QDialog):
                     self.export_sc_node_cb.setCurrentIndex(index)
             except TypeError:
                 pass
-
+    # refresh the import combobox
     def refresh_import_cb(self):
         s_clusters = self.get_scene_deformers()
         cur_import_cb = self.import_sc_node_cb.currentText()
@@ -365,18 +381,20 @@ class SCImportExport(QtWidgets.QDialog):
                     self.import_sc_node_cb.setCurrentIndex(index)
             except TypeError:
                 pass
-
+    # export the skincluster and user data to a json file
     def sc_do_export(self):
         result = False
         self.refresh_export_cb()
         export_cb = self.export_sc_node_cb.currentText()
         export_userName = self.sc_export_creator_le.text()
         force_replace = self.export_sc_cb_force_cb.isChecked()
- 
+        
+        # perform checks 
         if not export_cb:
             cmds.warning("No Skin Clusters Found In Scene For Export")
             return
         export_dir_path = self.export_dir_path_le.text()
+        
         if not export_dir_path:
             export_dir_path = self.export_dir_path_le.placeholderText()
         export_dir_path = self.resolve_output_directory_path(export_dir_path)
@@ -402,6 +420,7 @@ class SCImportExport(QtWidgets.QDialog):
                 result = self.export_overwrite()
         else:
             result = True
+        # write to json
         if result:
             meta_data = UserData()
             meta_data.get_user_data(export_userName)
@@ -413,7 +432,8 @@ class SCImportExport(QtWidgets.QDialog):
             data_to_dump["Deformer Info"] = deformer_data.to_json()
             with open(export_file,"w") as file_for_write:
                 json.dump(data_to_dump, file_for_write)
-
+    
+    # when user selects file to import grab the data and populate the gui
     def populate_data(self, file_path):
     
         with open(file_path,"r") as file_for_read:
@@ -428,9 +448,12 @@ class SCImportExport(QtWidgets.QDialog):
         self.sc_created_import_date_le.setText(file_create)
         self.sc_platform_le.setText(platform)
 
+    # import the skincluster from a json file
     def sc_do_import(self):
         self.refresh_import_cb()
         import_cb = self.import_sc_node_cb.currentText()
+        
+        # perform checks
         if not import_cb:
             cmds.warning("No Skin Cluster Found In Scene To Import Data To")
             return
@@ -462,13 +485,14 @@ class SCImportExport(QtWidgets.QDialog):
             for vtx in range(0, len(vtx_count)):   
                 get_val = json_influences[jnt][str(jnt)][vtx]
                 cmds.skinPercent( import_cb, '{0}.vtx[{1}]'.format(import_to_geo_name,vtx), tv=[json_inf_lst[jnt], get_val])
-
+    
+    # check the import file has the same influences
     def equal_ignore_order(self, a, b):
         if len(a) != len(b):
             return False
         unmatched = list(b)
+        
         for element in a:
-
             try:
                 unmatched.remove(element)
             except ValueError:
