@@ -1,3 +1,4 @@
+# simple tool to add mult matrix nodes between skinclusters and their influences
 import sys
 
 from PySide2 import QtCore
@@ -16,7 +17,7 @@ def maya_main_window():
 
 class local_mtx_sc(QtWidgets.QDialog):
     TITLE = "Localize skin matrix"
-    
+  
     dlg_instance = None
 
     @classmethod
