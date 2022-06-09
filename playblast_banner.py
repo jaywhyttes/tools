@@ -38,6 +38,9 @@ def maya_main_window():
 	return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
 class PlayblastBanner(QtWidgets.QDialog):
+	"""
+	create the gui
+	"""
 	TITLE = "Playblast Banner Creator"
 	dlg_instance = None
 
@@ -202,7 +205,8 @@ class PlayblastBanner(QtWidgets.QDialog):
 		self.nudge_width_down.clicked.connect(self.set_nudge_val)
 		self.nudge_height_up.clicked.connect(self.set_nudge_val)
 		self.nudge_height_down.clicked.connect(self.set_nudge_val)
-
+		
+	# nudge the banner for more precise adjustments
 	def set_nudge_val(self):
 		if self.sender() == self.nudge_distance_up:
 			cur_val = float(self.adjust_size_le.text()) + 0.01
@@ -228,21 +232,24 @@ class PlayblastBanner(QtWidgets.QDialog):
 			cur_val = float(self.adjust_height_le.text()) - 0.01
 			self.adjust_height_le.setText(str(f'{cur_val:.2f}'))
 
-
+	# get the user login credentials
 	def get_animator_loging(self):
 		user_name = os.getlogin()
 		return user_name
-
+	# get cameras in the scene
+	# TODO: add button to ignore default scene cameras 
 	def get_scene_cameras(self):
 		self.camera_select_cb.clear()
 		scene_cameras = cmds.listCameras()
 		for cams in scene_cameras:
 			self.camera_select_cb.addItem(cams)
-
+	
+	# set the users tool to the move tool when we select the transform node for the banner
 	def select_transform_node(self):
 		cmds.select(self.anim_types[1])
 		cmds.setToolTo("Move")
 
+	# adjust the banners width, height and scale ratio
 	def adjust_size(self):
 		try:
 			val = float(self.adjust_size_le.text())
@@ -268,7 +275,7 @@ class PlayblastBanner(QtWidgets.QDialog):
 		except ValueError:
 			self.adjust_width_le.setText(self.adjust_width_le.text()[:-1])
 			return
-
+	# create the banner and unlock buttons
 	def execute(self):
 		self.anim_types = self.set_up_text()
 		self.attatch_to_cam(self.anim_types)
@@ -283,6 +290,7 @@ class PlayblastBanner(QtWidgets.QDialog):
 		self.nudge_width_down.setEnabled(True)
 		self.select_node_btn.setEnabled(True)
 
+	# create the banners text
 	def set_up_text(self):
 		user_name = self.animator_name_le.text()
 		if not user_name:
@@ -375,6 +383,7 @@ class PlayblastBanner(QtWidgets.QDialog):
 
 		return geo_offset_grp_name, geo_grp_name, background_node_name
 
+	# name checking helper
 	def check_exists(self, nodeName, start):
 		n = 1
 		if start == 0:
@@ -390,7 +399,8 @@ class PlayblastBanner(QtWidgets.QDialog):
 				else:
 					break
 		return nodeNameOut
-
+	
+	# create a type mesh and attach the scenes time to it
 	def create_type_geo(self, nodeNames=None):
 		time_node = cmds.ls(type="time")[0]
 
@@ -413,7 +423,8 @@ class PlayblastBanner(QtWidgets.QDialog):
 		cmds.setAttr('{0}.fontSize'.format(type_node),1)
 
 		return type_node, type_geo_node, type_geo_shape_node
-
+	
+	# convert string to hex to set the type text 
 	def string_to_hex(self, s):
 		hex_space = ""
 		for i in s:
@@ -421,6 +432,7 @@ class PlayblastBanner(QtWidgets.QDialog):
 			hex_space = hex_space + v + " "
 		return hex_space[0:len(hex_space)-1]
 
+	# attach the banner to the camera
 	def attatch_to_cam(self, anim_banner):
 
 		cam = self.camera_select_cb.currentText()
